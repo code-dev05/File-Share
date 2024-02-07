@@ -16,7 +16,23 @@ function App() {
   const [fileNames, setFileNames] = useState([]);
 
   ws.onmessage = function (message) {
-    
+    const data = JSON.parse(message.data);
+    var base64Data = data.fileData.split(",")[1];
+    var binaryData = atob(base64Data);
+
+      // Create a blob from the decoded binary data
+      var arrayBuffer = new ArrayBuffer(binaryData.length);
+      var byteArray = new Uint8Array(arrayBuffer);
+      for (var i = 0; i < binaryData.length; i++) {
+        byteArray[i] = binaryData.charCodeAt(i);
+      }
+      var blob = new Blob([arrayBuffer], { type: 'application/octet-stream' });
+
+      // Create a download link and trigger the download
+      var downloadLink = document.createElement('a');
+      downloadLink.href = window.URL.createObjectURL(blob);
+      downloadLink.download = data.fileName; // Specify the filename here
+      downloadLink.click();
   };
 
   useEffect(() => {
