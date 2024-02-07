@@ -2,18 +2,26 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
 
-const ws = new WebSocket("ws://localhost:4000");
-
+const ws = new WebSocket("ws://192.168.83.85:4000");
 function sendMessage(msg) {
   ws.send(msg);
 }
 
 function App() {
   const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState("");
   const [isLogged, setIsLogged] = useState(false);
+  const [username, setUsername] = useState("");
+  const [fileUrls, setFileUrls] = useState([]);
+  const [fileNames, setFileNames] = useState([]);
+
+  ws.onmessage = function (message) {
+    
+  };
+
   useEffect(() => {
     const fetchData = async () => {
-      const response = await axios.get("http://localhost:3000/users");
+      const response = await axios.get("http://192.168.83.85:3000/users");
       setUsers(response.data.users);
     };
 
@@ -23,32 +31,77 @@ function App() {
   }, []);
 
   const handleClick = (id) => {
-    const sendData = {
-      name: users[id],
-      payload: "Hello",
-    };
+    if (users[id] == username) {
+      const file = document.getElementById("fileForm");
+      file.style.display = "none";
+      return;
+    }
 
-    sendMessage(JSON.stringify(sendData));
+    const file = document.getElementById("fileForm");
+    file.style.display = "block";
+    setSelectedUser(users[id]);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    var fileInput = document.getElementById("fileToUpload");
+    var file = fileInput.files[0];
+
+    if (file) {
+      var reader = new FileReader();
+
+      reader.onload = function (event) {
+        var fileData = event.target.result;
+        var fileObject = {
+          type: "file",
+          name: username,
+          sendTo: selectedUser,
+          fileName: file.name,
+          fileData: fileData,
+        };
+        sendMessage(JSON.stringify(fileObject));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
     <>
-      {isLogged || <Login setIsLogged={setIsLogged} />}
+      {isLogged || (
+        <Login setIsLogged={setIsLogged} setUsername={setUsername} />
+      )}
       {isLogged && (
-        <div className="top">
-          {users.map((user, id) => (
-            <div key={id} className="card" onClick={() => handleClick(id)}>
-              <div className="glowing-green-light"></div>
-              <p>{user}</p>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="top">
+            {users.map((user, id) => (
+              <div key={id} className="card" onClick={() => handleClick(id)}>
+                <div className="glowing-green-light"></div>
+                <p>{user}</p>
+              </div>
+            ))}
+            <form id="fileForm" onSubmit={handleSubmit}>
+              <input type="file" name="fileToUpload" id="fileToUpload" />
+              <button type="submit">Submit</button>
+            </form>
+          </div>
+          <div className="bottom">
+            {fileUrls.map((fileUrl, id) => {
+              return (
+                <div className="card">
+                  <a href={fileUrl} download={fileNames[id]}>
+                    <button>Download</button>
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );
 }
 
-const Login = ({ setIsLogged }) => {
+const Login = ({ setIsLogged, setUsername }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const name = document.getElementById("name").value;
@@ -58,6 +111,7 @@ const Login = ({ setIsLogged }) => {
     };
     sendMessage(JSON.stringify(data));
     setIsLogged(true);
+    setUsername(name);
   };
 
   return (

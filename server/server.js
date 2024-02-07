@@ -6,6 +6,7 @@ const users = {};
 
 const wss = new WebSocket.Server({ host: '0.0.0.0', port: 4000 });
 wss.on("connection", async(ws, req) => {
+  console.log(Object.keys(users));
   console.log("Client Connected");
   let name = "";
 
